@@ -1,7 +1,7 @@
 class Time
 	constructor: (time) ->
 		if typeof time is "string"
-			throw "Invalid time #{time}" unless time.match /^\d{1,2}:\d{2}$/
+			throw "Invalid time #{time}" unless time.match /^\d{1,2}:\d{1,2}$/
 			[@hours, @minutes] = (Number(t) for t in time.split ":")
 			throw "Out of range time #{time}" unless 0 <= @hours < 24 and 0 <= @minutes < 60
 		else if typeof time is "number" and time % 1 is 0
@@ -12,7 +12,7 @@ class Time
 			throw "Unknown input type (#{typeof time}) for input #{time}"
 	
 	toString: () ->
-		"#{@hours}:#{@minutes}"
+		"#{@hours}:" + (if @minutes < 10 then "0#{@minutes}" else "#{@minutes}")
 	valueOf: () ->
 		@hours * 60 + @minutes
 
@@ -30,4 +30,30 @@ minuteByMinute = (timeRange) ->
 		output.push time.toString()
 	output
 
-console.log minuteByMinute("9:50-10:10")
+parseSchedule = (data) ->
+	output = []
+	classes = data.names
+	for day in data.schedule
+		today = {}
+		for timeRange, classCode of day
+			for time in minuteByMinute timeRange
+				today[time] = classes[classCode]
+		output.push today
+	output
+	
+readData = (file) ->
+	fs = require "fs"
+ 
+	JSON.parse fs.readFileSync file, 'utf8'
+
+getClassFromTime = (day, time, schedule) ->
+	schedule[day][new Time(time)] or "None"
+
+getCurrentClass = (schedule) ->
+	now = new Date()
+	getClassFromTime now.getDay(), "#{now.getHours()}:#{now.getMinutes()}", schedule
+		
+schedule = parseSchedule readData "#{__dirname}/blockschedule.json"
+
+console.log getClassFromTime 2, "12:01", schedule
+console.log getCurrentClass schedule
